@@ -1,0 +1,31 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - script: |
+      id
+      sudo sh ./nix-install-2.18.1 --daemon --yes
+
+  - task: Cache@2
+    inputs:
+      key: '"$(Agent.OS)"'
+      path: "/nix-cache"
+    displayName: Cache Nix Store
+
+  - script: |
+      set -ex
+      sudo -i nix-env -if https://install.devenv.sh/latest
+      sudo du -hs /nix/store
+
+  - script: |
+      set -ex
+      . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
+      devenv container iac  --registry=docker-daemon: --copy
+      docker image ls
+
+  - script: |
+      docker run -ti iac:latest tofu --version
